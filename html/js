@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Advanced Calculator — Single File</title>
+    <style>
+        :root {
+            --bg: #0b1220;
+            --panel: #0f1724;
+            --accent: #06b6d4;
+            --muted: #9aa6b2;
+            --btn: #101827;
+            --btn-hover: #1f2a38;
+            --glass: rgba(255, 255, 255, 0.03);
+            --radius: 12px;
+            --gap: 10px;
+            --accent-2: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            background: linear-gradient(160deg, #051229 0%, #071730 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 28px;
+            color: #e6eef8;
+        }
+
+        .calculator {
+            width: 860px;
+            max-width: 100%;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+            border-radius: var(--radius);
+            padding: 18px;
+            box-shadow: 0 16px 48px rgba(2, 6, 23, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .calc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px
+        }
+
+        .calc-header h1 {
+            font-size: 1.05rem;
+            margin: 0;
+            font-weight: 600;
+            color: #e7f3ff
+        }
+
+        .memory-indicator {
+            color: var(--muted);
+            font-size: 0.9rem
+        }
+
+        .display-wrapper {
+            background: var(--glass);
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .expression {
+            color: var(--muted);
+            font-size: 0.9rem;
+            min-height: 20px;
+            text-align: right;
+            word-break: break-all;
+        }
+
+        .display {
+            margin-top: 6px;
+            background: transparent;
+            border: 0;
+            color: #fff;
+            font-size: 1.9rem;
+            text-align: right;
+            outline: none;
+            width: 100%;
+            font-weight: 700;
+        }
+
+        /* Layout */
+        .controls {
+            display: flex;
+            gap: 18px
+        }
+
+        .left-panel {
+            flex: 1
+        }
+
+        .right-panel {
+            width: 220px;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 12px;
+            border-radius: 10px;
+        }
+
+        .right-panel h2 {
+            margin: 0 0 8px 0;
+            font-size: 0.95rem;
+            color: var(--muted)
+        }
+
+        .history {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 280px;
+            overflow: auto
+        }
+
+        .history li {
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: transparent;
+            cursor: pointer;
+            transition: background .12s
+        }
+
+        .history li:hover {
+            background: rgba(255, 255, 255, 0.02)
+        }
+
+        .history-expression {
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .history-result {
+            font-weight: 600;
+            color: #e6eef8
+        }
+
+        /* Buttons grid */
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--gap);
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            background: var(--btn);
+            color: #e6eef8;
+            border: 0;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform .06s ease, background .08s ease;
+            box-shadow: 0 6px 18px rgba(2, 6, 23, 0.45);
+        }
+
+        .btn:active {
+            transform: translateY(1px)
+        }
+
+        .btn:hover {
+            background: var(--btn-hover)
+        }
+
+        .operator {
+            background: rgba(59, 130, 246, 0.08);
+            color: var(--accent-2)
+        }
+
+        .operator:hover {
+            background: rgba(59, 130, 246, 0.12)
+        }
+
+        .equal {
+            background: linear-gradient(180deg, var(--accent-2), #1e72d6);
+            color: white;
+            grid-column: span 1;
+        }
+
+        .equal:hover {
+            filter: brightness(1.06)
+        }
+
+        .control {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--muted)
+        }
+
+        .number {
+            background: rgba(255, 255, 255, 0.02)
+        }
+
+        .func {
+            background: rgba(6, 182, 212, 0.06);
+            color: var(--accent)
+        }
+
+        .small {
+            padding: 8px 10px;
+            font-size: 0.92rem;
+            margin: 4px 4px 0 0;
+            border-radius: 8px
+        }
+
+        .memory {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px
+        }
+
+        /* Responsive */
+        @media (max-width:900px) {
+            .calculator {
+                width: 100%
+            }
+
+            .right-panel {
+                display: none
+            }
+        }
+
+        .hint {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="calculator" role="application" aria-label="Advanced calculator">
+        <header class="calc-header">
+            <h1>Advanced Calculator</h1>
+            <div class="memory-indicator" id="memoryIndicator" aria-hidden="true"></div>
+        </header>
+
+        <section class="display-wrapper">
+            <div id="expression" class="expression" aria-live="polite"></div>
+            <input id="display" class="display" type="text" inputmode="decimal" aria-label="Calculator display"
+                readonly />
+        </section>
+
+        <section class="controls">
+            <div class="left-panel">
+                <div class="buttons" role="group" aria-label="Calculator buttons">
+                    <button class="btn control" data-action="clear" aria-label="clear">C</button>
+                    <button class="btn control" data-action="delete" aria-label="delete">DEL</button>
+                    <button class="btn control" data-action="paren" data-value="("
+                        aria-label="open parenthesis">(</button>
+                    <button class="btn control" data-action="paren" data-value=")"
+                        aria-label="close parenthesis">)</button>
+
+                    <button class="btn func" data-value="pi">π</button>
+                    <button class="btn func" data-value="e">e</button>
+                    <button class="btn func" data-value="ans" aria-label="last answer">ANS</button>
+                    <button class="btn operator" data-value="/" aria-label="divide">÷</button>
+
+                    <button class="btn number" data-value="7">7</button>
+                    <button class="btn number" data-value="8">8</button>
+                    <button class="btn number" data-value="9">9</button>
+                    <button class="btn operator" data-value="*" aria-label="multiply">×</button>
+
+                    <button class="btn number" data-value="4">4</button>
+                    <button class="btn number" data-value="5">5</button>
+                    <button class="btn number" data-value="6">6</button>
+                    <button class="btn operator" data-value="-" aria-label="subtract">−</button>
+
+                    <button class="btn number" data-value="1">1</button>
+                    <button class="btn number" data-value="2">2</button>
+                    <button class="btn number" data-value="3">3</button>
+                    <button class="btn operator" data-value="+" aria-label="add">+</button>
+
+                    <button class="btn number" data-value="0">0</button>
+                    <button class="btn number" data-value=".">.</button>
+                    <button class="btn operator" data-value="^" aria-label="power">^</button>
+                    <button class="btn equal" data-action="equals" aria-label="equals">=</button>
+                </div>
+
+                <div class="functions" role="group" aria-label="Functions">
+                    <button class="btn small" data-fn="sin">sin</button>
+                    <button class="btn small" data-fn="cos">cos</button>
+                    <button class="btn small" data-fn="tan">tan</button>
+                    <button class="btn small" data-fn="sqrt">√</button>
+                    <button class="btn small" data-fn="ln">ln</button>
+                    <button class="btn small" data-fn="log">log</button>
+                    <button class="btn small" data-fn="exp">exp</button>
+                    <button class="btn small" data-fn="abs">abs</button>
+                </div>
+
+                <div class="memory" role="group" aria-label="Memory">
+                    <button class="btn mem" data-action="mc">MC</button>
+                    <button class="btn mem" data-action="mr">MR</button>
+                    <button class="btn mem" data-action="mplus">M+</button>
+                    <button class="btn mem" data-action="mminus">M-</button>
+                </div>
+            </div>
+
+            <aside class="right-panel" aria-label="History">
+                <h2>History</h2>
+                <ul id="history" class="history" role="list"></ul>
+            </aside>
+        </section>
+
+        <p class="hint">Keyboard: numbers, + - * / ^, Enter to evaluate, Backspace to delete, Esc to clear. Type
+            function names (e.g. sin(1.57)).</p>
+    </main>
+
+    <script>
+        /* Tokenizer / Parser / Evaluator and UI orchestration (single file) */
+        class Token {
+            constructor(type, value = null) { this.type = type; this.value = value; }
+        }
+
+        class Tokenizer {
+            constructor() {
+                this.functions = new Set(['sin', 'cos', 'tan', 'sqrt', 'ln', 'log', 'exp', 'abs']);
+                this.constants = { 'pi': Math.PI, 'π': Math.PI, 'e': Math.E };
+            }
+
+            tokenize(input) {
+                const s = input.trim();
+                const tokens = [];
+                let i = 0;
+                const isDigit = ch => /[0-9]/.test(ch);
+                const isAlpha = ch => /[a-zA-Zπ]/.test(ch);
+
+                while (i < s.length) {
+                    const ch = s[i];
+                    if (/\s/.test(ch)) { i++; continue; }
+                    if (isDigit(ch) || (ch === '.' && isDigit(s[i + 1]))) {
+                        let j = i, dotCount = 0;
+                        while (j < s.length && (isDigit(s[j]) || s[j] === '.')) {
+                            if (s[j] === '.') dotCount++;
+                            if (dotCount > 1) throw new Error('Invalid number format');
+                            j++;
+                        }
+                        tokens.push(new Token('number', parseFloat(s.slice(i, j))));
+                        i = j; continue;
+                    }
+                    if ('+-*/^'.includes(ch)) { tokens.push(new Token('operator', ch)); i++; continue; }
+                    if (ch === '(' || ch === ')') { tokens.push(new Token('paren', ch)); i++; continue; }
+                    if (ch === ',') { tokens.push(new Token('comma', ',')); i++; continue; }
+                    if (isAlpha(ch)) {
+                        let j = i;
+                        while (j < s.length && /[a-zA-Zπ]/.test(s[j])) j++;
+                        const name = s.slice(i, j).toLowerCase();
+                        if (name === 'ans') { tokens.push(new Token('ans', 'ans')); }
+                        else if (this.functions.has(name)) { tokens.push(new Token('func', name)); }
+                        else if (name in this.constants) { tokens.push(new Token('number', this.constants[name])); }
+                        else throw new Error(`Unknown identifier: ${name}`);
+                        i = j; continue;
+                    }
+                    throw new Error(`Unexpected character: '${ch}'`);
+                }
+                return tokens;
+            }
+        }
+
+        class Parser {
+            constructor() {
+                this.ops = {
+                    '+': { prec: 2, assoc: 'left', arity: 2 },
+                    '-': { prec: 2, assoc: 'left', arity: 2 },
+                    '*': { prec: 3, assoc: 'left', arity: 2 },
+                    '/': { prec: 3, assoc: 'left', arity: 2 },
+                    '^': { prec: 4, assoc: 'right', arity: 2 },
+                    'u-': { prec: 5, assoc: 'right', arity: 1 }
+                };
+            }
+
+            toRPN(tokens) {
+                const output = [];
+                const stack = [];
+                let prevToken = null;
+                for (let i = 0; i < tokens.length; i++) {
+                    let t = tokens[i];
+                    if (t.type === 'number' || t.type === 'ans') { output.push(t); prevToken = t; continue; }
+                    if (t.type === 'func') { stack.push(t); prevToken = t; continue; }
+                    if (t.type === 'comma') {
+                        while (stack.length && stack[stack.length - 1].type !== 'paren') output.push(stack.pop());
+                        if (!stack.length) throw new Error('Misplaced comma or parentheses');
+                        prevToken = t; continue;
+                    }
+                    if (t.type === 'operator') {
+                        let op = t.value;
+                        const unary = (op === '-' && (
+                            !prevToken ||
+                            (prevToken.type === 'operator') ||
+                            (prevToken.type === 'paren' && prevToken.value === '(') ||
+                            (prevToken.type === 'comma') ||
+                            (prevToken.type === 'func')
+                        ));
+                        if (unary) op = 'u-';
+                        while (stack.length) {
+                            const top = stack[stack.length - 1];
+                            if (top.type === 'operator') {
+                                const o1 = this.ops[op];
+                                const o2 = this.ops[top.value];
+                                if (!o2) break;
+                                if ((o1.assoc === 'left' && o1.prec <= o2.prec) ||
+                                    (o1.assoc === 'right' && o1.prec < o2.prec)) {
+                                    output.push(stack.pop()); continue;
+                                }
+                            }
+                            break;
+                        }
+                        stack.push(new Token('operator', op));
+                        prevToken = t; continue;
+                    }
+                    if (t.type === 'paren') {
+                        if (t.value === '(') { stack.push(t); prevToken = t; continue; }
+                        else {
+                            while (stack.length && stack[stack.length - 1].type !== 'paren') output.push(stack.pop());
+                            if (!stack.length) throw new Error('Mismatched parentheses');
+                            stack.pop();
+                            if (stack.length && stack[stack.length - 1].type === 'func') output.push(stack.pop());
+                            prevToken = t; continue;
+                        }
+                    }
+                }
+                while (stack.length) {
+                    const top = stack.pop();
+                    if (top.type === 'paren') throw new Error('Mismatched parentheses');
+                    output.push(top);
+                }
+                return output;
+            }
+        }
+
+        class Evaluator {
+            constructor() {
+                this.funcs = {
+                    sin: x => Math.sin(x),
+                    cos: x => Math.cos(x),
+                    tan: x => Math.tan(x),
+                    sqrt: x => { if (x < 0) throw new Error('sqrt of negative'); return Math.sqrt(x); },
+                    ln: x => { if (x <= 0) throw new Error('ln domain error'); return Math.log(x); },
+                    log: x => { if (x <= 0) throw new Error('log domain error'); return Math.log10 ? Math.log10(x) : Math.log(x) / Math.LN10; },
+                    exp: x => Math.exp(x),
+                    abs: x => Math.abs(x)
+                };
+            }
+
+            evaluate(rpn, ans = 0) {
+                const stack = [];
+                for (const token of rpn) {
+                    if (token.type === 'number') { stack.push(token.value); continue; }
+                    if (token.type === 'ans') { stack.push(ans); continue; }
+                    if (token.type === 'operator') {
+                        if (token.value === 'u-') {
+                            const a = stack.pop();
+                            if (a === undefined) throw new Error('Missing operand for unary -');
+                            stack.push(-a); continue;
+                        }
+                        const b = stack.pop(); const a = stack.pop();
+                        if (a === undefined || b === undefined) throw new Error('Missing operands');
+                        let res;
+                        switch (token.value) {
+                            case '+': res = a + b; break;
+                            case '-': res = a - b; break;
+                            case '*': res = a * b; break;
+                            case '/': if (b === 0) throw new Error('Division by zero'); res = a / b; break;
+                            case '^': res = Math.pow(a, b); break;
+                            default: throw new Error(`Unsupported operator ${token.value}`);
+                        }
+                        stack.push(res); continue;
+                    }
+                    if (token.type === 'func') {
+                        const fn = this.funcs[token.value];
+                        if (!fn) throw new Error(`Unknown function: ${token.value}`);
+                        const a = stack.pop();
+                        if (a === undefined) throw new Error(`Missing argument for ${token.value}`);
+                        stack.push(fn(a)); continue;
+                    }
+                    throw new Error('Invalid token during evaluation');
+                }
+                if (stack.length !== 1) throw new Error('Invalid expression');
+                return stack[0];
+            }
+        }
+
+        class Calculator {
+            constructor() {
+                this.tokenizer = new Tokenizer();
+                this.parser = new Parser();
+                this.evaluator = new Evaluator();
+                this.expr = '';
+                this.ans = 0;
+                this.memory = 0;
+                this.history = [];
+                this.displayEl = document.getElementById('display');
+                this.expressionEl = document.getElementById('expression');
+                this.historyEl = document.getElementById('history');
+                this.memoryIndicator = document.getElementById('memoryIndicator');
+                this._bindUI();
+                this._render();
+            }
+
+            _bindUI() {
+                document.querySelectorAll('.btn').forEach(btn => {
+                    btn.addEventListener('click', () => this._onButtonClick(btn));
+                });
+
+                this.historyEl.addEventListener('click', (e) => {
+                    const li = e.target.closest('li');
+                    if (!li) return;
+                    const expr = li.dataset.expr;
+                    if (expr) { this.expr = expr; this._render(); }
+                });
+
+                window.addEventListener('keydown', (e) => this._onKeyDown(e));
+            }
+
+            _onButtonClick(btn) {
+                const action = btn.dataset.action;
+                const value = btn.dataset.value;
+                const fn = btn.dataset.fn;
+                if (action === 'clear') return this._clear();
+                if (action === 'delete') return this._delete();
+                if (action === 'equals') return this._evaluate();
+                if (action === 'paren') { this._append(value); return; }
+                if (action === 'mc') { this.memory = 0; this._render(); return; }
+                if (action === 'mr') { this._append(String(this.memory)); return; }
+                if (action === 'mplus') { this._memoryAdd(); return; }
+                if (action === 'mminus') { this._memorySub(); return; }
+                if (fn) { this._append(fn + '('); return; }
+                if (btn.classList.contains('func')) {
+                    const v = value;
+                    if (v === 'pi') this._append('pi');
+                    else if (v === 'e') this._append('e');
+                    else if (v === 'ans') this._append('ans');
+                    return;
+                }
+                if (btn.classList.contains('operator') || btn.classList.contains('number')) { this._append(value); return; }
+            }
+
+            _onKeyDown(e) {
+                const k = e.key;
+                if ((/^[0-9]$/).test(k)) { this._append(k); e.preventDefault(); return; }
+                if (k === '.') { this._append('.'); e.preventDefault(); return; }
+                if ('+-*/^'.includes(k)) { this._append(k); e.preventDefault(); return; }
+                if (k === 'Enter' || k === '=') { this._evaluate(); e.preventDefault(); return; }
+                if (k === 'Backspace') { this._delete(); e.preventDefault(); return; }
+                if (k === 'Escape') { this._clear(); e.preventDefault(); return; }
+                if (k === '(' || k === ')') { this._append(k); e.preventDefault(); return; }
+                if (/^[a-zA-Z]$/.test(k)) { this._append(k); e.preventDefault(); return; }
+            }
+
+            _append(text) { this.expr += text; this._render(); }
+            _delete() { this.expr = this.expr.slice(0, -1); this._render(); }
+            _clear() { this.expr = ''; this._render(); }
+
+            _memoryAdd() {
+                try {
+                    const val = this._tryEvalSimple();
+                    if (isFinite(val)) { this.memory += val; this._render(); }
+                } catch (e) { }
+            }
+            _memorySub() {
+                try {
+                    const val = this._tryEvalSimple();
+                    if (isFinite(val)) { this.memory -= val; this._render(); }
+                } catch (e) { }
+            }
+
+            _tryEvalSimple() {
+                const tokens = this.tokenizer.tokenize(this.expr);
+                const rpn = this.parser.toRPN(tokens);
+                return this.evaluator.evaluate(rpn, this.ans);
+            }
+
+            _evaluate() {
+                try {
+                    const tokens = this.tokenizer.tokenize(this.expr);
+                    const rpn = this.parser.toRPN(tokens);
+                    const result = this.evaluator.evaluate(rpn, this.ans);
+                    if (!isFinite(result)) throw new Error('Non-finite result');
+                    this.ans = result;
+                    this.history.unshift({ expr: this.expr, result: this._format(result) });
+                    if (this.history.length > 50) this.history.pop();
+                    this.expr = String(this._format(result));
+                    this._render();
+                } catch (err) {
+                    this._showError(err.message);
+                }
+            }
+
+            _format(num) {
+                if (Number.isInteger(num)) return num;
+                const s = Number.parseFloat(num.toPrecision(12));
+                return s;
+            }
+
+            _showError(msg) {
+                this.displayEl.value = 'Error: ' + msg;
+                this.expressionEl.textContent = this.expr;
+                setTimeout(() => this._render(), 1200);
+            }
+
+            _render() {
+                this.displayEl.value = this.expr || '0';
+                this.expressionEl.textContent = this.expr;
+                this._renderHistory();
+                this._renderMemoryIndicator();
+            }
+
+            _renderHistory() {
+                this.historyEl.innerHTML = '';
+                for (const item of this.history) {
+                    const li = document.createElement('li');
+                    li.dataset.expr = item.expr;
+                    const ex = document.createElement('div');
+                    ex.className = 'history-expression';
+                    ex.textContent = item.expr;
+                    const re = document.createElement('div');
+                    re.className = 'history-result';
+                    re.textContent = item.result;
+                    li.appendChild(ex);
+                    li.appendChild(re);
+                    this.historyEl.appendChild(li);
+                }
+            }
+
+            _renderMemoryIndicator() {
+                this.memoryIndicator.textContent = this.memory !== 0 ? `M=${this.memory}` : '';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            try { new Calculator(); }
+            catch (err) {
+                console.error('Calculator init error:', err);
+                const display = document.getElementById('display');
+                if (display) display.value = 'Init error';
+            }
+        });
+    </script>
+</body>
+
+</html>
